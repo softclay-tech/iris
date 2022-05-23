@@ -6,13 +6,15 @@
 module.exports = ({
   server,
   database,
-  logger
+  logger,
+  eventInitService
 }) => {
   return {
     start: () =>
       Promise.resolve()
         // .then(database.sequelize.sync({ force: true }))
         .then(database.sequelize.authenticate())
+        .then(eventInitService.init())
         .then(server.start),
     logger
   }

@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 module.exports = (sequelize, DataTypes) => {
   const EventConfig = sequelize.define(
@@ -16,22 +16,36 @@ module.exports = (sequelize, DataTypes) => {
       type: {
         type: DataTypes.STRING,
       },
+      rule: {
+        type: DataTypes.STRING,
+      },
+      serviceName: {
+        type: DataTypes.STRING,
+      },
+      methodName: {
+        type: DataTypes.STRING,
+      },
+      config: {
+        type: DataTypes.JSON,
+      },
+      actionConfig: {
+        type: DataTypes.JSON,
+      },
+      updatedBy: {
+        type: DataTypes.UUID,
+      },
       recordStatus: {
         type: DataTypes.INTEGER,
         defaultValue: 1,
-      },
-      defaultLang: {
-        type: DataTypes.STRING(8),
-        defaultValue: 'en_US',
-      },
+      }
     },
     {
       freezeTableName: true,
     }
-  );
+  )
 
-  EventConfig.associate = function(models) {
+  EventConfig.associate = function (models) {
 
-  };
-  return EventConfig;
-};
+  }
+  return EventConfig
+}

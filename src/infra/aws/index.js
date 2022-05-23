@@ -3,30 +3,40 @@ const cls = require('cls-hooked')
 const nsid = 'a6a29a6f-6747-4b5f-b99f-07ee96e32f88'
 const AWS = require('aws-sdk')
 const uuidv4 = require('uuid/v4')
+const PromiseBlueBird = require('bluebird')
 
 module.exports = ({
   config,
-  logger }) => {
+  logger,
+  healthCheckService,
+  CustomError
+}) => {
+
+  const SQS_CONNECT_TIMEOUT = process.env.SQS_CONNECT_TIMEOUT || 2000
+  // const SQS_MAX_RETRIES = process.env.SQS_MAX_RETRIES || 1
+
   AWS.config.update({
     accessKeyId: config.AWS_ACCESS_KEY,
     secretAccessKey: config.AWS_SECRET_KEY,
     region: config.AWS_REGION
   })
 
-  const queueUrlConfig = new Map()
+  const queueUrlConfig = {}
+  const listnerConfig = {}
 
   const sendToQueue = async (queueName, message) => {
     const sqs = new AWS.SQS({
       apiVersion: '2012-11-05'
     })
-    let queueUrl = queueUrlConfig.get(queueName)
+    let queueUrl = queueUrlConfig[queueName]
     if (!queueUrl) {
       queueUrl = await getQueueUrlFromName(queueName)
-      queueUrlConfig.set(queueName, queueUrl)
+      queueUrlConfig[queueName] = queueUrl
     }
     const params = {
       MessageBody: JSON.stringify(message),
-      QueueUrl: queueUrl
+      QueueUrl: queueUrl,
+      MessageGroupId: '2'
     }
     return sqs.sendMessage(params).promise()
   }
@@ -53,87 +63,13 @@ module.exports = ({
     }
   }
 
-  // Changed to Throttling :)
-  const registerSQSPooling = async (eventCommandExecuter, config) => {
-    const queueName = config.getQueueName()
-    const executeAllSync = config.executeAllSync || true
-    const queueUrl = await getQueueUrlFromName(queueName)
-    const params = {
-      AttributeNames: ['SentTimestamp'],
-      MaxNumberOfMessages: config.maxNumberOfMessages || 10,
-      MessageAttributeNames: ['All'],
-      QueueUrl: queueUrl,
-      VisibilityTimeout: config.visibilityTimeout || 150,
-      WaitTimeSeconds: config.waitTimeSeconds || 10
-    }
-    AWS.config.update({
-      region: 'ap-south-1'
-    })
+  const createQueue = (queueName, attributes) => {
     const sqs = new AWS.SQS({
       apiVersion: '2012-11-05'
     })
-    const deleteMsgFromSQS = async (deleteParams, eventName) => {
-      sqs.deleteMessage(deleteParams).promise().then(() => {
-        logger.info(`Deleting ${eventName} From ${queueName} Successful, Delete Params :: ${JSON.stringify(deleteParams)}`)
-      }).catch(err => {
-        logger.error(`Failed To delete ${eventName} from ${queueName} :: Error :: `, err)
-      })
-    }
-    // this will be throttled
-    const pullMsgFromQueue = async () => {
-      await sqs.receiveMessage(params).promise().then(async data => {
-        if (data.Messages && data.Messages.length > 0) {
-          for (let message of data.Messages) {
-            await sqsMiddleware(message, async function (message) {
-              const messageBody = JSON.parse(message.Body)
-              if (messageBody) {
-                await setRequestContext(message.MessageId, messageBody, async function (messageBody) {
-                  const deleteParams = {
-                    QueueUrl: queueUrl,
-                    ReceiptHandle: message.ReceiptHandle
-                  }
-                  const eventName = messageBody.eventName
-                  logger.info(`Received Event :: ${eventName}, Message Data:: ${JSON.stringify(messageBody.data)}`)
-                  if (executeAllSync) {
-                    await eventCommandExecuter({
-                      ...messageBody,
-                      config
-                    })
-                      .then(async () => {
-                        logger.info(`Running Listeners in Sync for event :: ${eventName}`)
-                        await deleteMsgFromSQS(deleteParams, eventName)
-                      }).catch(error => {
-                        logger.error(`Error Running Listeners Sync :: Event :: ${eventName}, data: ${JSON.stringify(messageBody.data)}, Error ::`, error)
-                      })
-                  } else {
-                    await eventCommandExecuter(messageBody)
-                      .then(async () => {
-                        logger.info(`Published Event Async:: ${eventName}`)
-                        await deleteMsgFromSQS(deleteParams, eventName)
-                      }).catch(error => {
-                        logger.error(`Error Publishing Async Event :: ${eventName}, data: ${JSON.stringify(messageBody.data)}, Error ::`, error)
-                      })
-                  }
-                })
-              }
-            })
-          }
-        }
-        setImmediate(pullMsgFromQueue, 1000)
-      }).catch(error => {
-        logger.error(` Failed To Pull Message, ${queueName} Error ::`, error)
-        setImmediate(pullMsgFromQueue, 1000)
-      })
-    }
-    setImmediate(pullMsgFromQueue, 1000)
-  }
-  const createQueue = (queueName, attributes) => {
-    var sqs = new AWS.SQS({
-      apiVersion: '2012-11-05'
-    })
-    var params = {
+    const params = {
       QueueName: queueName,
-      Attributes: attributes
+      Attributes: { ...attributes, 'FifoQueue': 'true', 'ContentBasedDeduplication': 'true' }
     }
 
     return sqs.createQueue(params).promise()
@@ -199,10 +135,100 @@ module.exports = ({
     return signedUrl
   }
 
+  const subscribeQueue = (listener, queueName, eventMethod, QueueParams = {}) => {
+    listnerConfig[queueName] = listener
+    registerLongPolling(listener, queueName, eventMethod, QueueParams)
+  }
+
+  const registerLongPolling = async (listener, queueName, eventMethod, QueueParams) => {
+    try {
+      const sqs = new AWS.SQS({ apiVersion: '2012-11-05', httpOptions: { connectTimeout: SQS_CONNECT_TIMEOUT } })
+      let queueUrl = queueUrlConfig[queueName]
+      if (!queueUrlConfig[queueName]) {
+        queueUrl = await getQueueUrlFromName(queueName)
+        queueUrlConfig[queueName] = queueUrl
+      }
+
+      const params = {
+        AttributeNames: [
+          'SentTimestamp'
+        ],
+        MaxNumberOfMessages: QueueParams.MaxNumberOfMessages || 10,
+        MessageAttributeNames: [
+          'All'
+        ],
+        QueueUrl: queueUrl,
+        WaitTimeSeconds: QueueParams.WaitTimeSeconds || 10,
+        VisibilityTimeout: QueueParams.VisibilityTimeout || 60
+      }
+
+      if (process.env.IS_QUEUE_PROCESSING_ENABLED != undefined && process.env.IS_QUEUE_PROCESSING_ENABLED === 'false') {
+        logger.info(`subscribe to queue ${queueName} is stopped from server as IS_QUEUE_PROCESSING_ENABLED is false`)
+      } else {
+        const healthCheckStatus = await healthCheckService.getState()
+        logger.info(`subscribe to queue ${queueName} is done with read status as ${healthCheckStatus}`)
+        // eslint-disable-next-line no-unmodified-loop-condition
+        while (healthCheckStatus === 'ACTIVE') {
+          const data = await sqs.receiveMessage(params).promise()
+          if (data.Messages && data.Messages.length > 0) {
+            logger.info(`message received from queue ${queueName} length ${data.Messages.length} ${JSON.stringify(data)}`)
+            const processed = []
+            await PromiseBlueBird.map(data.Messages, async (processMessage) => {
+              await sqsMiddleware(processMessage, async function (message) {
+                try {
+                  const messageObj = JSON.parse(message.Body)
+                  if (messageObj.data) {
+                    messageObj.awsSQSMessageId = message.MessageId
+
+                    await setRequestContext(message.MessageId, messageObj, async function (messageObj) {
+                      logger.info(`message queue info ${queueName} ${JSON.stringify(messageObj)}`)
+                      await listener[`handleEvent${eventMethod}`](messageObj)
+                    })
+                    processed.push(message)
+                  }
+                } catch (err) {
+                  if (err instanceof CustomError) {
+                    logger.info(`Custom error in message queue info ${queueName} ${JSON.stringify(message)}`, err)
+                  } else {
+                    let messageBody = JSON.parse(message.Body)
+                    logger.error(`Error in message queue info ${queueName} ${messageBody.notificationName} ${JSON.stringify(message)}`, err)
+                  }
+                }
+              })
+            }, { concurrency: QueueParams.concurrency || 10 })
+            if (processed.length > 0) {
+              const result = await deleteMessage(sqs, processed, queueUrl)
+              logger.info(`Deleting message queue info ${queueName} length ${processed.length} ${JSON.stringify(processed)} ${JSON.stringify(result)}`)
+            }
+          }
+        }
+      }
+    } catch (ex) {
+      logger.error('exception while registering for long polling', ex)
+      throw ex
+    }
+  }
+
+  const deleteMessage = async (sqs, messages, queueURL) => {
+    try {
+      const deleteParams = {
+        QueueUrl: queueURL,
+        Entries: []
+      }
+      for (let i in messages) {
+        deleteParams.Entries.push({ Id: i, ReceiptHandle: messages[i].ReceiptHandle })
+      }
+      return sqs.deleteMessageBatch(deleteParams).promise()
+    } catch (err) {
+      logger.info('Error in deletting message from queue' + queueURL, err)
+    }
+  }
+
   return {
     sendToQueue,
-    registerSQSPooling,
+    registerLongPolling,
     uploadFileOnS3,
-    getPreSignedUrlForDownload
+    getPreSignedUrlForDownload,
+    subscribeQueue
   }
 }

@@ -18,14 +18,14 @@ module.exports = {
   SENDGRID_ACCOUNT_ONE_API_KEY: process.env.SENDGRID_ACCOUNT_ONE_API_KEY,
   AWS: {
     SQS: {
-      APP_EVENT_SQS_NAME: process.env.APP_EVENT_SQS_NAME,
-      JOB_SCHEDULER_EVENT_QUEUE: process.env.JOB_SCHEDULER_EVENT_QUEUE
+      APP_EVENT_SQS_NAME: process.env.APP_EVENT_SQS_NAME
     }
   },
   CANDIDATE_ASSETS_BUCKET_NAME: process.env.CANDIDATE_ASSETS_BUCKET_NAME,
   AWS_REGION: process.env.AWS_REGION,
-  AWS_ACCESS_KEY: process.env.AWS_ACCESS_KEY,
-  AWS_SECRET_KEY: process.env.AWS_SECRET_KEY,
+  AWS_ACCESS_KEY: process.env.AWS_ACCESS_KEY_ID,
+  AWS_SECRET_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+  IS_EVENT_QUEUE_ENABLED: process.env.IS_EVENT_QUEUE_ENABLED,
   mongoDBConfig: {
     host: process.env.MONGO_DB_HOST,
     port: process.env.MONGO_DB_PORT,

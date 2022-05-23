@@ -69,6 +69,16 @@ module.exports = ({
   apiRouter.use(`/api/V1/health`, controller('health_check', 'index'))
 
 
+  /**
+   * Common Controller
+   */
+  apiRouter.use(`/api/V1/common`, controller('common', 'index'))
+
+  /**
+   * Event Controller
+   */
+  apiRouter.use(`/api/V1/event`, controller('event', 'index'))
+
   router.use(`/`, apiRouter)
   // Register Error Handler
   router.use(errorHandlerMiddleware)
