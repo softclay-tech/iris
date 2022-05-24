@@ -1,11 +1,14 @@
 import {
   define
 } from 'src/containerHelper'
+const uuidv4 = require('uuid/v4')
 
 module.exports = define('eventConfigService', ({
   logger,
   CustomError,
-  eventConfigRepository
+  eventConfigRepository,
+  eventLogRepository
+
 }) => {
   const getEventConfig = async ({ name, type }) => {
     try {
@@ -28,9 +31,15 @@ module.exports = define('eventConfigService', ({
   }
 
   const parseEventConfig = async () => {
+    const eventLogObj = {
+      id: uuidv4(),
+      name: 'EVENT_NAME'
+    }
+    eventLogRepository.createV3Config(eventLogObj)
     // TODO Add logic
   }
 
+  parseEventConfig()
   return {
     getEventConfig,
     parseEventConfig

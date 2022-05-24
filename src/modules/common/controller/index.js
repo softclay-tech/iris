@@ -9,6 +9,7 @@ module.exports = () => {
   } = container.cradle
   const {
     commonUtilService,
+    eventBodyValidateService,
     logger
   } = container.cradle
 
@@ -18,6 +19,22 @@ module.exports = () => {
       try {
         logger.info(`common controller`)
         await commonUtilService.sendMessageToQueue();
+        res.status(Status.OK).json(await Success('OK'))
+      } catch (e) {
+        next(e)
+      }
+    }
+  )
+
+  router.get(
+    '/validateBody',
+    async (req, res, next) => {
+      try {
+        logger.info(`common controller`)
+        await eventBodyValidateService.validateEventObj({
+          username: 'abc',
+          password: 'abc123'
+        });
         res.status(Status.OK).json(await Success('OK'))
       } catch (e) {
         next(e)
