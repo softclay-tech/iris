@@ -48,13 +48,12 @@ module.exports = define('eventBodyValidateService', ({
             logger.info(JoiError)
           }
           // Custom Error
-          // next(
-          //   new CustomError(
-          //     INVALID_REQUEST.code,
-          //     INVALID_REQUEST.status,
-          //     isNil(JoiError.error.details) ? 'Please check the request again' : JoiError.error.details
-          //   )
-          // );
+          new CustomError(
+            constants.INVALID_REQUEST.code,
+            constants.INVALID_REQUEST.status,
+            isNil(JoiError.error.details) ? 'Please check the request again' : JoiError.error.details
+          )
+
         }
       })
   }
