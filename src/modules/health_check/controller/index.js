@@ -16,7 +16,6 @@ module.exports = () => {
     async (req, res, next) => {
       try {
         const result = await healthCheckService.getState()
-        console.log("health check status")
         if (result === 'ACTIVE') {
           res.status(Status.OK).json(await Success(result))
         } else {

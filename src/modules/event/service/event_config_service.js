@@ -35,11 +35,10 @@ module.exports = define('eventConfigService', ({
       id: uuidv4(),
       name: 'EVENT_NAME'
     }
-    eventLogRepository.createV3Config(eventLogObj)
+    // eventLogRepository.createV3Config(eventLogObj)
     // TODO Add logic
   }
 
-  parseEventConfig()
   return {
     getEventConfig,
     parseEventConfig

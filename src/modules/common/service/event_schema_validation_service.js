@@ -1,5 +1,4 @@
 const Joi = require('joi')
-const joi = require('joi')
 const { indexOf, map, isNil } = require('ramda')
 
 import { define } from 'src/containerHelper'
@@ -7,8 +6,9 @@ import { define } from 'src/containerHelper'
 module.exports = define('eventBodyValidateService', ({
   config,
   logger,
-  healthCheckService,
-  CustomError
+  CustomError,
+  constants,
+  validators
 }) => {
 
   const _validationOptions = {
@@ -16,18 +16,14 @@ module.exports = define('eventBodyValidateService', ({
     allowUnknown: true, // allow unknown keys that will be ignored
     stripUnknown: true, // remove unknown keys from the validated data
   }
-  const schema = Joi.object({
-    username: Joi.string().alphanum().min(3).max(30).required(),
-    password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]+$'))
-  })
 
   const validateEventObj = async (validateBody) => {
-    console.log('validateEventObj',validateEventObj)
-    return joi
+    console.log('validateEventObj--validators', validators.registrationEventSchema.userSchema)
+    return Joi
       .object()
-      .validateAsync(schema, validateBody, _validationOptions)
+      .validateAsync.call(validators.registrationEventSchema.userSchema, validateBody, _validationOptions)
       .then(value => {
-        console.log('validateEventObj', value)
+        console.log('validateEventObj ------', value)
 
       })
       .catch(error => {

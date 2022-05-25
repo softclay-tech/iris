@@ -38,7 +38,9 @@ import mongoDBConn from './infra/no-sql-database/index.js'
 import redis from './infra/caching'
 import baseRepo from './infra/sequelize/base_repository'
 import baseRepositoryV2 from './infra/sequelize/base_v2_repository'
+import validators from './interfaces/http/middlewares/validators/schemas'
 const routeContextMiddleware = require('./interfaces/http/middlewares/routeContextMiddleware')
+
 const container = createContainer({
   injectionMode: InjectionMode.PROXY
 })
@@ -55,7 +57,8 @@ container
   })
   .register({
     config: asValue(config),
-    constants: asValue(constants)
+    constants: asValue(constants),
+    validators: asValue(validators)
   })
 
 // Middlewares
