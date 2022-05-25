@@ -18,7 +18,8 @@ module.exports = () => {
     async (req, res, next) => {
       try {
         logger.info(`common controller`)
-        await commonUtilService.sendMessageToQueue();
+        let {eventName= "", data = {}} = req.body;
+        await commonUtilService.sendMessageToQueue({eventName, data});
         res.status(Status.OK).json(await Success('OK'))
       } catch (e) {
         next(e)

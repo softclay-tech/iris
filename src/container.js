@@ -120,4 +120,21 @@ container.loadModules(['modules/**/service/*.js'], {
   },
   cwd: __dirname
 })
+
+container.loadModules(['modules/**/repository/mongo/*.js'], {
+  resolverOptions: {
+    register: asFunction,
+    lifetime: Lifetime.SINGLETON
+  },
+  cwd: __dirname
+})
+
+container.loadModules(['modules/**/dbmodel/mongo/*.js'], {
+  resolverOptions: {
+    register: asFunction,
+    lifetime: Lifetime.SINGLETON
+  },
+  cwd: __dirname
+})
+
 module.exports = container

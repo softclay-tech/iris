@@ -6,8 +6,7 @@ const uuidv4 = require('uuid/v4')
 module.exports = define('eventConfigService', ({
   logger,
   CustomError,
-  eventConfigRepository,
-  eventLogRepository
+  eventConfigRepository
 
 }) => {
   const getEventConfig = async ({ name, type }) => {
@@ -35,7 +34,6 @@ module.exports = define('eventConfigService', ({
       id: uuidv4(),
       name: 'EVENT_NAME'
     }
-    eventLogRepository.createV3Config(eventLogObj)
     // TODO Add logic
   }
 

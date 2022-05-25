@@ -8,7 +8,6 @@ String.prototype.toObjectId = function() {
 module.exports = ({ config, logger }) => {
   try {
     const { mongoDBConfig } = config
-    console.log('conif')
     if (!mongoDBConfig || !mongoDBConfig.host) {
       throw new Error('Mongo DB config not found !')
     }
