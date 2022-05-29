@@ -17,8 +17,9 @@ module.exports = () => {
     '/sendMessage',
     async (req, res, next) => {
       try {
+        const { body } = req
         logger.info(`common controller`)
-        await commonUtilService.sendMessageToQueue();
+        await commonUtilService.sendMessageToQueue(body);
         res.status(Status.OK).json(await Success('OK'))
       } catch (e) {
         next(e)
@@ -31,10 +32,7 @@ module.exports = () => {
     async (req, res, next) => {
       try {
         logger.info(`common controller`)
-        await eventBodyValidateService.validateEventObj({
-          username: 'abc',
-          password: 'abc123'
-        });
+
         res.status(Status.OK).json(await Success('OK'))
       } catch (e) {
         next(e)

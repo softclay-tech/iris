@@ -17,14 +17,13 @@ module.exports = define('eventBodyValidateService', ({
     stripUnknown: true, // remove unknown keys from the validated data
   }
 
-  const validateEventObj = async (validateBody) => {
-    console.log('validateEventObj--validators', validators.registrationEventSchema.userSchema)
+  const validateEventObj = async (eventConfig, schema, validateBody) => {
+    logger.info(`validateEventObj init for ${eventConfig.name} and type :  ${eventConfig.type}`)
     return Joi
       .object()
-      .validateAsync.call(validators.registrationEventSchema.userSchema, validateBody, _validationOptions)
+      .validateAsync.call(schema, validateBody, _validationOptions)
       .then(value => {
-        console.log('validateEventObj ------', value)
-
+        return value
       })
       .catch(error => {
         if (error) {
@@ -48,7 +47,7 @@ module.exports = define('eventBodyValidateService', ({
             logger.info(JoiError)
           }
           // Custom Error
-          new CustomError(
+          throw new CustomError(
             constants.INVALID_REQUEST.code,
             constants.INVALID_REQUEST.status,
             isNil(JoiError.error.details) ? 'Please check the request again' : JoiError.error.details

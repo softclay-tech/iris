@@ -15,7 +15,7 @@ module.exports = define('eventConfigService', ({
       if (name) {
         const whereClause = { name }
         if (type) {
-          whereClause[type] = type
+          whereClause['type'] = type
         }
         return eventConfigRepository.getConfig(whereClause)
       } else {
