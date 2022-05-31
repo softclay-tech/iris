@@ -14,7 +14,7 @@ module.exports = define('eventConfigService', ({
       if (name) {
         const whereClause = { name }
         if (type) {
-          whereClause[type] = type
+          whereClause['type'] = type
         }
         return eventConfigRepository.getConfig(whereClause)
       } else {
@@ -34,10 +34,10 @@ module.exports = define('eventConfigService', ({
       id: uuidv4(),
       name: 'EVENT_NAME'
     }
+    // eventLogRepository.createV3Config(eventLogObj)
     // TODO Add logic
   }
 
-  parseEventConfig()
   return {
     getEventConfig,
     parseEventConfig

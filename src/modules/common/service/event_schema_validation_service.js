@@ -1,5 +1,4 @@
 const Joi = require('joi')
-const joi = require('joi')
 const { indexOf, map, isNil } = require('ramda')
 
 import { define } from 'src/containerHelper'
@@ -7,8 +6,9 @@ import { define } from 'src/containerHelper'
 module.exports = define('eventBodyValidateService', ({
   config,
   logger,
-  healthCheckService,
-  CustomError
+  CustomError,
+  constants,
+  validators
 }) => {
 
   const _validationOptions = {
@@ -16,19 +16,14 @@ module.exports = define('eventBodyValidateService', ({
     allowUnknown: true, // allow unknown keys that will be ignored
     stripUnknown: true, // remove unknown keys from the validated data
   }
-  const schema = Joi.object({
-    username: Joi.string().alphanum().min(3).max(30).required(),
-    password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]+$'))
-  })
 
-  const validateEventObj = async (validateBody) => {
-    console.log('validateEventObj',validateEventObj)
-    return joi
+  const validateEventObj = async (eventConfig, schema, validateBody) => {
+    logger.info(`validateEventObj init for ${eventConfig.name} and type :  ${eventConfig.type}`)
+    return Joi
       .object()
-      .validateAsync(schema, validateBody, _validationOptions)
+      .validateAsync.call(schema, validateBody, _validationOptions)
       .then(value => {
-        console.log('validateEventObj', value)
-
+        return value
       })
       .catch(error => {
         if (error) {
@@ -52,13 +47,12 @@ module.exports = define('eventBodyValidateService', ({
             logger.info(JoiError)
           }
           // Custom Error
-          // next(
-          //   new CustomError(
-          //     INVALID_REQUEST.code,
-          //     INVALID_REQUEST.status,
-          //     isNil(JoiError.error.details) ? 'Please check the request again' : JoiError.error.details
-          //   )
-          // );
+          throw new CustomError(
+            constants.INVALID_REQUEST.code,
+            constants.INVALID_REQUEST.status,
+            isNil(JoiError.error.details) ? 'Please check the request again' : JoiError.error.details
+          )
+
         }
       })
   }

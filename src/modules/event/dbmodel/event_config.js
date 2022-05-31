@@ -16,6 +16,12 @@ module.exports = (sequelize, DataTypes) => {
       type: {
         type: DataTypes.STRING,
       },
+      validationSchemaFile: {
+        type: DataTypes.STRING,
+      },
+      schema: {
+        type: DataTypes.STRING,
+      },
       rule: {
         type: DataTypes.STRING,
       },
