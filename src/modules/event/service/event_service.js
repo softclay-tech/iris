@@ -9,7 +9,8 @@ const { clone } = require('ramda')
 module.exports = define('eventService', ({
   logger,
   CustomError,
-  eventConfigService
+  eventConfigService,
+  eventLogDocRepository
 }) => {
   const handleEventAppNotificationQueue = async (messageObj) => {
     try {
@@ -32,6 +33,7 @@ module.exports = define('eventService', ({
       enrichedData = await enrichData(eventConfig.serviceName, eventConfig.methodName, messageObj.data)
     }
     const parsedEventConfig = await parseEventConfig(eventConfig, enrichedData)
+    eventLogDocRepository.create({eventName, eventData: parsedEventConfig}) // logging event in mongo
     console.log('parsedEventConfig',parsedEventConfig)
   }
 

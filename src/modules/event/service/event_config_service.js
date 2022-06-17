@@ -6,8 +6,7 @@ const uuidv4 = require('uuid/v4')
 module.exports = define('eventConfigService', ({
   logger,
   CustomError,
-  eventConfigRepository,
-  eventLogRepository
+  eventConfigRepository
 
 }) => {
   const getEventConfig = async ({ name, type }) => {
